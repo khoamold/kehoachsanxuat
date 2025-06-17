@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Sản phẩm Dice</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    .header {
+      display: flex; align-items: center;
+      padding: 10px 30px; background-color: #fff;
+      position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #ccc;
+    }
+    .logo-container { display: flex; align-items: center; }
+    .logo-container img { height: 50px; margin-right: 10px; transition: transform 0.3s ease; }
+    .logo-container img:hover { transform: scale(1.2); }
+    .logo-text { font-size: 14px; color: #444; }
+    .title { flex-grow: 1; text-align: center; }
+    h1 { font-size: 24px; color: #2c3e50; margin: 0; }
+    .jp-text { font-size: 14px; color: gray; display: block; }
+    .filters {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; padding: 20px 30px 0;
+    }
+    .filter-controls label { margin-right: 10px; font-size: 14px; }
+    input, select, button { margin: 5px; padding: 5px; font-size: 14px; }
+    table { border-collapse: collapse; width: 100%; margin: 20px auto; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; cursor: pointer; }
+    tr:hover { background-color: #f9f9f9; }
+    .page-buttons {
+      display: flex; gap: 10px;
+    }
+    .page-buttons button {
+      padding: 6px 12px; cursor: pointer; border: none;
+      background-color: #3498db; color: white; border-radius: 4px;
+    }
+    .page-buttons button:hover { background-color: #2980b9; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo">
+      <div class="logo-text">VM-MOLD</div>
+    </div>
+    <div class="title">
+      <h1>Sản phẩm Dice<br><span class="jp-text">Dice 製品</span></h1>
+    </div>
+    <div id="datetime"></div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-controls">
+      <label>Nhập tên sản phẩm: <input type="text" id="filter-name"></label>
+      <label>Bộ phận: <select id="filter-department"><option value="">Tất cả</option></select></label>
+      <label>Từ ngày: <input type="date" id="start-date"></label>
+      <label>Đến ngày: <input type="date" id="end-date"></label>
+      <label>Trạng thái:
+        <select id="statusFilter" onchange="applyFilters()">
+          <option value="">-- Tất cả --</option>
+          <option value="hoàn thành">Hoàn thành</option>
+          <option value="đang xử lý">Đang xử lý</option>
+          <option value="stop">Stop</option>
+        </select>
+      </label>
+      <button onclick="applyFilters()">Lọc</button>
+    </div>
+    <div class="page-buttons">
+      <a href="index.html"><button>Trang chính</button></a>
+      <a href="page3.html"><button>SP Khác</button></a>
+    </div>
+  </div>
+
+  <table id="data-table">
+    <thead>
+      <tr>
+        <th>Bộ phận<br><span class="jp-text">部門</span></th>
+        <th>Tên phẩm<br><span class="jp-text">製品名</span></th>
+        <th>Số lượng Pin<br><span class="jp-text">ピン数</span></th>
+        <th>Số lượng đặt<br><span class="jp-text">注文数</span></th>
+        <th>Ngày nhận<br><span class="jp-text">受取日</span></th>
+        <th>Người nhận<br><span class="jp-text">受取者</span></th>
+        <th onclick="sortTableByDate(6)">Ngày giao <i class="fas fa-sort"></i><br><span class="jp-text">納品予定日</span></th>
+        <th>Người giao<br><span class="jp-text">配送者</span></th>
+        <th>Ngày giao thực tế<br><span class="jp-text">実納品日</span></th>
+        <th>Số lượng<br><span class="jp-text">納品数</span></th>
+        <th>Mã Dice<br><span class="jp-text">ダイス番号</span></th>
+        <th>Trạng thái<br><span class="jp-text">状況</span></th>
+        <th>Ghi chú<br><span class="jp-text">備考</span></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const API_KEY = 'AIzaSyBXOr__3o5RcnC2NIXAPT7Wctcjw4jqJGM';
+    const SHEET_ID = '10L4KEYHYucn4qOxw17ZTTvY6Ead0JGOqhMt23VeEDg4';
+    const SHEET_NAME = 'Dice';
+    const sheetURL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+    let ascending = true;
+
+    fetch(sheetURL)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.values) return;
+        const rows = data.values.slice(1);
+        const tbody = document.querySelector('#data-table tbody');
+        const departmentSet = new Set();
+
+        rows.forEach(row => {
+          while (row.length < 13) row.push('--');
+
+          const tr = document.createElement('tr');
+          row.forEach((cell, index) => {
+            const td = document.createElement('td');
+            td.textContent = cell.trim() || '--';
+            tr.appendChild(td);
+          });
+
+          // Trạng thái + icon
+          const statusCell = tr.children[11];
+          const statusText = statusCell.textContent.toLowerCase();
+          let icon = '', color = '';
+          if (statusText === 'đang xử lý') {
+            icon = '<i class="fas fa-hourglass-half"></i> ';
+            color = 'orange';
+          } else if (statusText === 'hoàn thành') {
+            icon = '<i class="fas fa-check-circle"></i> ';
+            color = 'green';
+          } else if (statusText === 'stop') {
+            icon = '<i class="fas fa-ban"></i> ';
+            color = 'red';
+          }
+          statusCell.innerHTML = icon + statusCell.textContent;
+          statusCell.style.color = color;
+
+          tbody.appendChild(tr);
+          departmentSet.add(row[0]);
+        });
+
+        // Bộ phận
+        const depSelect = document.getElementById('filter-department');
+        departmentSet.forEach(dep => {
+          const option = document.createElement('option');
+          option.value = dep;
+          option.textContent = dep;
+          depSelect.appendChild(option);
+        });
+      });
+
+    function applyFilters() {
+      const nameFilter = document.getElementById('filter-name').value.toLowerCase();
+      const department = document.getElementById('filter-department').value;
+      const startDate = new Date(document.getElementById('start-date').value);
+      const endDate = new Date(document.getElementById('end-date').value);
+      const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+      const rows = document.querySelectorAll('#data-table tbody tr');
+
+      rows.forEach(row => {
+        const cells = row.children;
+        const name = cells[1].textContent.toLowerCase();
+        const dep = cells[0].textContent;
+        const dateStr = cells[6].textContent;
+        const status = cells[11].textContent.toLowerCase();
+        const date = new Date(dateStr);
+
+        const matchName = name.includes(nameFilter);
+        const matchDep = !department || department === dep;
+        const matchDate = (!isNaN(startDate) && !isNaN(endDate)) ? (date >= startDate && date <= endDate) : true;
+        const matchStatus = !statusFilter || status.includes(statusFilter);
+
+        row.style.display = (matchName && matchDep && matchDate && matchStatus) ? '' : 'none';
+      });
+    }
+
+    function sortTableByDate(colIndex) {
+      const tbody = document.querySelector('#data-table tbody');
+      const rows = Array.from(tbody.rows);
+
+      rows.sort((a, b) => {
+        const dateA = new Date(a.cells[colIndex].textContent || '1900-01-01');
+        const dateB = new Date(b.cells[colIndex].textContent || '1900-01-01');
+        return ascending ? dateA - dateB : dateB - dateA;
+      });
+
+      ascending = !ascending;
+      tbody.innerHTML = '';
+      rows.forEach(row => tbody.appendChild(row));
+    }
+
+    function updateDateTime() {
+      const now = new Date();
+      document.getElementById('datetime').textContent =
+        now.toLocaleTimeString('vi-VN') + ' - ' + now.toLocaleDateString('vi-VN');
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+  </script>
+</body>
+</html>
