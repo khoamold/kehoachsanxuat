@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Kế Hoạch Sản Xuất VM-MOLD</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    .header { display: flex; align-items: center; padding: 10px 30px; background-color: #fff; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #ccc; }
+    .logo-container { display: flex; align-items: center; }
+    .logo-container img { height: 50px; transition: transform 0.3s ease; margin-right: 10px; }
+    .logo-container img:hover { transform: scale(1.2); }
+    .logo-text { font-size: 14px; color: #444; }
+    .title { flex-grow: 1; text-align: center; }
+    h1 { font-size: 24px; color: #2c3e50; margin: 0; }
+    .jp-text { font-size: 14px; color: gray; display: block; }
+    .filters { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; padding: 20px 30px 0; }
+    .filter-controls label { margin-right: 10px; font-size: 14px; }
+    input, select, button { margin: 5px; padding: 5px; font-size: 14px; }
+    table { border-collapse: collapse; width: 100%; margin: 20px auto; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    tr:hover { background-color: #f9f9f9; }
+    .page-buttons button { margin-left: 10px; padding: 6px 12px; cursor: pointer; border: none; background-color: #3498db; color: white; border-radius: 4px; }
+    .page-buttons button:hover { background-color: #2980b9; }
+    #datetime { font-size: 14px; color: #333; margin-right: 20px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo">
+      <div class="logo-text">VM-MOLD</div>
+    </div>
+    <div class="title">
+      <h1>Kế Hoạch Sản Xuất VM-MOLD<br><span class="jp-text">VM-MOLD 生産計画</span></h1>
+    </div>
+    <div id="datetime"></div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-controls">
+      <label>Nhập tên sản phẩm: <input type="text" id="filter-name"></label>
+      <label>Chọn bộ phận: <select id="filter-department"><option value="">Tất cả</option></select></label>
+      <label>Từ ngày: <input type="date" id="start-date"></label>
+      <label>Đến ngày: <input type="date" id="end-date"></label>
+      <label>Chọn tháng: <select id="filter-month"><option value="">Tất cả</option></select></label>
+      <label>Trạng thái:
+        <select id="statusFilter" onchange="filterByStatus()">
+          <option value="">-- Tất cả --</option>
+          <option value="hoàn thành">Hoàn thành</option>
+          <option value="đang xử lý">Đang xử lý</option>
+          <option value="stop">Stop</option>
+        </select>
+      </label>
+      <button onclick="applyFilters()">Lọc</button>
+    </div>
+    <div class="page-buttons">
+      <a href="page2.html"><button>Dice</button></a>
+      <a href="page3.html"><button>SP Khác</button></a>
+    </div>
+  </div>
+
+  <table id="data-table">
+    <thead>
+      <tr>
+        <th>Bộ phận<br><span class="jp-text">部門</span></th>
+        <th>Tên khuôn<br><span class="jp-text">金型名</span></th>
+        <th>Mã khuôn<br><span class="jp-text">金型コード</span></th>
+        <th>Loại<br><span class="jp-text">種類</span></th>
+        <th>Ngày nhận<br><span class="jp-text">受取日</span></th>
+        <th>Ngày giao hàng<br><span class="jp-text">計画納品日</span></th>
+        <th>Ngày giao thực tế<br><span class="jp-text">実際納品日</span></th>
+        <th>Người tiếp nhận<br><span class="jp-text">受取担当者</span></th>
+        <th>Người giao<br><span class="jp-text">配送者</span></th>
+        <th>Người nhận<br><span class="jp-text">受取者</span></th>
+        <th>Trạng thái<br><span class="jp-text">完了状況</span></th>
+        <th>Ghi chú<br><span class="jp-text">備考</span></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+  const API_KEY = 'AIzaSyBXOr__3o5RcnC2NIXAPT7Wctcjw4jqJGM';
+  const SHEET_ID = '10L4KEYHYucn4qOxw17ZTTvY6Ead0JGOqhMt23VeEDg4';
+  const SHEET_NAME = 'Sheet1';
+  const sheetURL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+
+  fetch(sheetURL)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.values) return;
+      const rows = data.values.slice(1);
+      const tbody = document.querySelector('#data-table tbody');
+      const departmentSelect = document.getElementById('filter-department');
+      const monthSelect = document.getElementById('filter-month');
+      const departments = new Set();
+      const months = new Set();
+
+      rows.forEach(row => {
+        const tr = document.createElement('tr');
+        row.forEach(cell => {
+          const td = document.createElement('td');
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+
+        if (row[0]) departments.add(row[0]);
+        if (row[4] && row[4].includes('-')) {
+          const dateParts = row[4].split('-');
+          if (dateParts.length === 3) months.add(`${dateParts[0]}-${dateParts[1]}`);
+        }
+      });
+
+      departments.forEach(dep => {
+        const option = document.createElement('option');
+        option.value = dep;
+        option.textContent = dep;
+        departmentSelect.appendChild(option);
+      });
+
+      months.forEach(month => {
+        const option = document.createElement('option');
+        option.value = month;
+        option.textContent = month;
+        monthSelect.appendChild(option);
+      });
+
+      const rowsRendered = document.querySelectorAll('#data-table tbody tr');
+      rowsRendered.forEach(row => {
+        const statusCell = row.children[10];
+        if (!statusCell) return;
+        const statusText = statusCell.textContent.trim().toLowerCase();
+        let icon = '', color = '';
+
+        if (statusText === 'đang xử lý') {
+          icon = '<i class="fas fa-hourglass-half"></i> ';
+          color = 'orange';
+        } else if (statusText === 'hoàn thành') {
+          icon = '<i class="fas fa-check-circle"></i> ';
+          color = 'green';
+        } else if (statusText === 'stop') {
+          icon = '<i class="fas fa-ban"></i> ';
+          color = 'red';
+        }
+
+        if (icon) {
+          statusCell.innerHTML = icon + statusCell.textContent;
+          statusCell.style.color = color;
+        }
+      });
+    })
+    .catch(console.error);
+
+  function applyFilters() {
+    const nameFilter = document.getElementById('filter-name').value.toLowerCase();
+    const departmentFilter = document.getElementById('filter-department').value;
+    const startDate = new Date(document.getElementById('start-date').value);
+    const endDate = new Date(document.getElementById('end-date').value);
+    const monthFilter = document.getElementById('filter-month').value;
+    const rows = document.querySelectorAll('#data-table tbody tr');
+    rows.forEach(row => {
+      const cells = row.children;
+      const name = cells[1]?.textContent.toLowerCase();
+      const department = cells[0]?.textContent;
+      const date = new Date(cells[4]?.textContent);
+      const dateMonth = cells[4]?.textContent.slice(0, 7);
+      const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+      const status = cells[10]?.textContent.toLowerCase();
+
+      const withinDateRange = (!isNaN(startDate) && !isNaN(endDate)) ? (date >= startDate && date <= endDate) : true;
+      const matchMonth = monthFilter ? (dateMonth === monthFilter) : true;
+      const matchStatus = !statusFilter || (status && status.includes(statusFilter));
+
+      const matchName = name && name.includes(nameFilter);
+      const matchDept = !departmentFilter || (department === departmentFilter);
+
+      row.style.display = (matchName && matchDept && withinDateRange && matchMonth && matchStatus) ? '' : 'none';
+    });
+  }
+
+  function filterByStatus() {
+    applyFilters();
+  }
+
+  function updateDateTime() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('vi-VN');
+    const dateStr = now.toLocaleDateString('vi-VN');
+    document.getElementById('datetime').textContent = `${timeStr} - ${dateStr}`;
+  }
+
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+</script>
+</body>
+</html>

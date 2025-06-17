@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Dice - VM-MOLD</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    .header { display: flex; align-items: center; padding: 10px 30px; background-color: #fff; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #ccc; }
+    .logo-container { display: flex; align-items: center; }
+    .logo-container img { height: 50px; margin-right: 10px; transition: transform 0.3s ease; }
+    .logo-container img:hover { transform: scale(1.2); }
+    .logo-text { font-size: 14px; color: #444; }
+    .title { flex-grow: 1; text-align: center; }
+    h1 { font-size: 24px; color: #2c3e50; margin: 0; }
+    .jp-text { font-size: 14px; color: gray; display: block; }
+    #datetime { font-size: 14px; color: #333; margin-right: 20px; }
+    .filters { display: flex; flex-wrap: wrap; align-items: center; padding: 10px 30px 0; gap: 10px; }
+    .filters label { font-size: 14px; }
+    input, select, button { padding: 5px; font-size: 14px; }
+    table { border-collapse: collapse; width: 100%; margin: 20px auto; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    tr:hover { background-color: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-container">
+      <img src="logo.png" alt="Logo">
+      <div class="logo-text">VM-MOLD</div>
+    </div>
+    <div class="title">
+      <h1>Danh Sách Dice<br><span class="jp-text">ダイス一覧</span></h1>
+    </div>
+    <div id="datetime"></div>
+  </div>
+
+  <div class="filters">
+    <label>Nhập tên phẩm: <input type="text" id="filter-name"></label>
+    <label>Chọn bộ phận: 
+      <select id="filter-department"><option value="">Tất cả</option></select>
+    </label>
+    <label>Chọn tháng: 
+      <select id="filter-month"><option value="">Tất cả</option></select>
+    </label>
+    <label>Trạng thái: 
+      <select id="statusFilter" onchange="applyFilters()">
+        <option value="">-- Tất cả --</option>
+        <option value="hoàn thành">Hoàn thành</option>
+        <option value="đang xử lý">Đang xử lý</option>
+        <option value="stop">Stop</option>
+      </select>
+    </label>
+    <button onclick="applyFilters()">Lọc</button>
+  </div>
+
+  <table id="dice-table">
+    <thead>
+      <tr>
+        <th>Bộ phận<br><span class="jp-text">部門</span></th>
+        <th>Tên phẩm<br><span class="jp-text">品名</span></th>
+        <th>Số lượng PIN<br><span class="jp-text">ピン数</span></th>
+        <th>Số lượng đặt<br><span class="jp-text">依頼数</span></th>
+        <th>Ngày nhận<br><span class="jp-text">受取日</span></th>
+        <th>Người nhận<br><span class="jp-text">受取者</span></th>
+        <th>Ngày giao<br><span class="jp-text">納品日</span></th>
+        <th>Người giao<br><span class="jp-text">配送者</span></th>
+        <th>Ngày giao thực tế<br><span class="jp-text">実際納品日</span></th>
+        <th>Số lượng<br><span class="jp-text">数量</span></th>
+        <th>Mã Dice<br><span class="jp-text">ダイスコード</span></th>
+        <th>Trạng thái<br><span class="jp-text">完了状況</span></th>
+        <th>Ghi chú<br><span class="jp-text">備考</span></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+  const API_KEY = 'AIzaSyBXOr__3o5RcnC2NIXAPT7Wctcjw4jqJGM';
+  const SHEET_ID = '10L4KEYHYucn4qOxw17ZTTvY6Ead0JGOqhMt23VeEDg4';
+  const SHEET_NAME = 'Dice';
+  const sheetURL = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+
+  let allRows = [];
+
+  fetch(sheetURL)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.values) return;
+      allRows = data.values.slice(1);
+      renderTable(allRows);
+      populateFilters(allRows);
+    })
+    .catch(console.error);
+
+  function renderTable(rows) {
+    const tbody = document.querySelector('#dice-table tbody');
+    tbody.innerHTML = '';
+
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+      for (let i = 0; i < 13; i++) {
+        const td = document.createElement('td');
+        td.textContent = row[i] || '';
+        tr.appendChild(td);
+      }
+
+      const statusCell = tr.children[11];
+      const statusText = statusCell.textContent.trim().toLowerCase();
+      let icon = '', color = '';
+
+      if (statusText === 'đang xử lý') {
+        icon = '<i class="fas fa-hourglass-half"></i> ';
+        color = 'orange';
+      } else if (statusText === 'hoàn thành') {
+        icon = '<i class="fas fa-check-circle"></i> ';
+        color = 'green';
+      } else if (statusText === 'stop') {
+        icon = '<i class="fas fa-ban"></i> ';
+        color = 'red';
+      }
+
+      statusCell.innerHTML = icon + statusCell.textContent;
+      statusCell.style.color = color;
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function populateFilters(rows) {
+    const departmentSet = new Set();
+    const monthSet = new Set();
+
+    rows.forEach(row => {
+      departmentSet.add(row[0]);
+      const date = row[4] || '';
+      if (date.includes('-')) {
+        const month = date.slice(0, 7);
+        monthSet.add(month);
+      }
+    });
+
+    const depSelect = document.getElementById('filter-department');
+    departmentSet.forEach(dep => {
+      const option = document.createElement('option');
+      option.value = dep;
+      option.textContent = dep;
+      depSelect.appendChild(option);
+    });
+
+    const monthSelect = document.getElementById('filter-month');
+    monthSet.forEach(month => {
+      const option = document.createElement('option');
+      option.value = month;
+      option.textContent = month;
+      monthSelect.appendChild(option);
+    });
+  }
+
+  function applyFilters() {
+    const name = document.getElementById('filter-name').value.toLowerCase();
+    const department = document.getElementById('filter-department').value;
+    const month = document.getElementById('filter-month').value;
+    const status = document.getElementById('statusFilter').value.toLowerCase();
+
+    const filtered = allRows.filter(row => {
+      const nameMatch = row[1]?.toLowerCase().includes(name);
+      const depMatch = !department || row[0] === department;
+      const monthMatch = !month || (row[4]?.slice(0, 7) === month);
+      const statusMatch = !status || (row[11]?.toLowerCase().includes(status));
+      return nameMatch && depMatch && monthMatch && statusMatch;
+    });
+
+    renderTable(filtered);
+  }
+
+  function updateDateTime() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('vi-VN');
+    const dateStr = now.toLocaleDateString('vi-VN');
+    document.getElementById('datetime').textContent = `${timeStr} - ${dateStr}`;
+  }
+
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+</script>
+</body>
+</html>
