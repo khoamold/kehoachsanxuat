@@ -5,25 +5,123 @@
   <title>Kế Hoạch Sản Xuất VM-MOLD</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-    .header { display: flex; align-items: center; padding: 10px 30px; background-color: #fff; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #ccc; }
-    .logo-container { display: flex; align-items: center; }
-    .logo-container img { height: 50px; transition: transform 0.3s ease; margin-right: 10px; }
-    .logo-container img:hover { transform: scale(1.2); }
-    .logo-text { font-size: 14px; color: #444; }
-    .title { flex-grow: 1; text-align: center; }
-    h1 { font-size: 24px; color: #2c3e50; margin: 0; }
-    .jp-text { font-size: 14px; color: gray; display: block; }
-    .filters { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; padding: 20px 30px 0; }
-    .filter-controls label { margin-right: 10px; font-size: 14px; }
-    input, select, button { margin: 5px; padding: 5px; font-size: 14px; }
-    table { border-collapse: collapse; width: 100%; margin: 20px auto; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-    th { background-color: #f2f2f2; }
-    tr:hover { background-color: #f9f9f9; }
-    .page-buttons button { margin-left: 10px; padding: 6px 12px; cursor: pointer; border: none; background-color: #3498db; color: white; border-radius: 4px; }
-    .page-buttons button:hover { background-color: #2980b9; }
-    #datetime { font-size: 14px; color: #333; margin-right: 20px; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #fdfdfd;
+      color: #333;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      padding: 15px 30px;
+      background: linear-gradient(to right, #ff8800, #007BFF);
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .logo-container {
+      display: flex;
+      align-items: center;
+    }
+    .logo-container img {
+      height: 50px;
+      margin-right: 10px;
+      transition: transform 0.3s ease;
+    }
+    .logo-container img:hover {
+      transform: scale(1.2);
+    }
+    .logo-text {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .title {
+      flex-grow: 1;
+      text-align: center;
+    }
+    h1 {
+      font-size: 26px;
+      margin: 0;
+    }
+    .jp-text {
+      font-size: 14px;
+      color: #666;
+    }
+    #datetime {
+      font-size: 14px;
+    }
+    .filters {
+      background: #fff;
+      padding: 20px 30px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .filter-controls label {
+      margin: 5px 10px 5px 0;
+      font-size: 14px;
+      display: inline-block;
+    }
+    input, select, button {
+      margin: 5px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .page-buttons button {
+      background-color: #ff8800;
+    }
+    .page-buttons button:hover {
+      background-color: #e67300;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 20px auto;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    th, td {
+      border: 1px solid #eee;
+      padding: 10px;
+      text-align: center;
+      font-size: 14px;
+    }
+    th {
+      background: #f8f9fa;
+      cursor: pointer;
+    }
+    tr:hover {
+      background-color: #f1faff;
+    }
+    .highlight-today {
+      background-color: #fff9c4 !important;
+    }
+    @media (max-width: 768px) {
+      .filters, .filter-controls, .page-buttons {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      input, select, button {
+        width: 100%;
+        box-sizing: border-box;
+      }
+    }
   </style>
 </head>
 <body>
@@ -69,7 +167,7 @@
         <th>Mã khuôn<br><span class="jp-text">金型コード</span></th>
         <th>Loại<br><span class="jp-text">種類</span></th>
         <th>Ngày nhận<br><span class="jp-text">受取日</span></th>
-        <th>Ngày giao hàng<br><span class="jp-text">計画納品日</span></th>
+        <th onclick="sortByDeliveryDate()">Ngày giao hàng <i class="fas fa-sort"></i><br><span class="jp-text">計画納品日</span></th>
         <th>Ngày giao thực tế<br><span class="jp-text">実際納品日</span></th>
         <th>Người tiếp nhận<br><span class="jp-text">受取担当者</span></th>
         <th>Người giao<br><span class="jp-text">配送者</span></th>
@@ -82,6 +180,8 @@
   </table>
 
 <script>
+  let sortAsc = true;
+
   const API_KEY = 'AIzaSyBXOr__3o5RcnC2NIXAPT7Wctcjw4jqJGM';
   const SHEET_ID = '10L4KEYHYucn4qOxw17ZTTvY6Ead0JGOqhMt23VeEDg4';
   const SHEET_NAME = 'Sheet1';
@@ -97,14 +197,16 @@
       const monthSelect = document.getElementById('filter-month');
       const departments = new Set();
       const months = new Set();
+      const todayStr = new Date().toISOString().slice(0, 10);
 
       rows.forEach(row => {
         const tr = document.createElement('tr');
-        row.forEach(cell => {
+        row.forEach((cell, i) => {
           const td = document.createElement('td');
           td.textContent = cell;
           tr.appendChild(td);
         });
+        if (row[5] === todayStr) tr.classList.add('highlight-today');
         tbody.appendChild(tr);
 
         if (row[0]) departments.add(row[0]);
@@ -128,31 +230,35 @@
         monthSelect.appendChild(option);
       });
 
-      const rowsRendered = document.querySelectorAll('#data-table tbody tr');
-      rowsRendered.forEach(row => {
-        const statusCell = row.children[10];
-        if (!statusCell) return;
-        const statusText = statusCell.textContent.trim().toLowerCase();
-        let icon = '', color = '';
-
-        if (statusText === 'đang xử lý') {
-          icon = '<i class="fas fa-hourglass-half"></i> ';
-          color = 'orange';
-        } else if (statusText === 'hoàn thành') {
-          icon = '<i class="fas fa-check-circle"></i> ';
-          color = 'green';
-        } else if (statusText === 'stop') {
-          icon = '<i class="fas fa-ban"></i> ';
-          color = 'red';
-        }
-
-        if (icon) {
-          statusCell.innerHTML = icon + statusCell.textContent;
-          statusCell.style.color = color;
-        }
-      });
+      updateStatusIcons();
     })
     .catch(console.error);
+
+  function updateStatusIcons() {
+    const rowsRendered = document.querySelectorAll('#data-table tbody tr');
+    rowsRendered.forEach(row => {
+      const statusCell = row.children[10];
+      if (!statusCell) return;
+      const statusText = statusCell.textContent.trim().toLowerCase();
+      let icon = '', color = '';
+
+      if (statusText === 'đang xử lý') {
+        icon = '<i class="fas fa-hourglass-half"></i> ';
+        color = 'orange';
+      } else if (statusText === 'hoàn thành') {
+        icon = '<i class="fas fa-check-circle"></i> ';
+        color = 'green';
+      } else if (statusText === 'stop') {
+        icon = '<i class="fas fa-ban"></i> ';
+        color = 'red';
+      }
+
+      if (icon) {
+        statusCell.innerHTML = icon + statusCell.textContent;
+        statusCell.style.color = color;
+      }
+    });
+  }
 
   function applyFilters() {
     const nameFilter = document.getElementById('filter-name').value.toLowerCase();
@@ -161,13 +267,14 @@
     const endDate = new Date(document.getElementById('end-date').value);
     const monthFilter = document.getElementById('filter-month').value;
     const rows = document.querySelectorAll('#data-table tbody tr');
+    const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+
     rows.forEach(row => {
       const cells = row.children;
       const name = cells[1]?.textContent.toLowerCase();
       const department = cells[0]?.textContent;
       const date = new Date(cells[4]?.textContent);
       const dateMonth = cells[4]?.textContent.slice(0, 7);
-      const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
       const status = cells[10]?.textContent.toLowerCase();
 
       const withinDateRange = (!isNaN(startDate) && !isNaN(endDate)) ? (date >= startDate && date <= endDate) : true;
@@ -183,6 +290,19 @@
 
   function filterByStatus() {
     applyFilters();
+  }
+
+  function sortByDeliveryDate() {
+    const tbody = document.querySelector('#data-table tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    rows.sort((a, b) => {
+      const dateA = new Date(a.children[5].textContent);
+      const dateB = new Date(b.children[5].textContent);
+      return sortAsc ? dateA - dateB : dateB - dateA;
+    });
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+    sortAsc = !sortAsc;
   }
 
   function updateDateTime() {
