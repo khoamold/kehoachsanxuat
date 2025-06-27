@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Kế Hoạch Sản Xuất VM-MOLD</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #fdfdfd;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      height: 100%;
+      overflow: hidden;
+    }
+    .main-box {
+      max-width: 1920px;
+      height: 100vh;
+      margin: auto;
+      border: 5px solid #007bff;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      background: white;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      padding: 10px 30px;
+      background: linear-gradient(to right, #ff8800, #007BFF);
+      color: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .logo-container {
+      display: flex;
+      align-items: center;
+    }
+    .logo-container img {
+      height: 40px;
+      margin-right: 10px;
+    }
+    .logo-text {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .title {
+      flex-grow: 1;
+      text-align: center;
+    }
+    h1 {
+      font-size: 26px;
+      margin: 0;
+    }
+    .jp-text {
+      font-size: 14px;
+      color: #555;
+    }
+    #datetime {
+      font-size: 18px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .week-range {
+      text-align: center;
+      font-size: 16px;
+      padding: 5px;
+    }
+    .week-range .jp {
+      display: block;
+      font-size: 13px;
+      color: #555;
+    }
+    .week-buttons {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    .week-buttons button {
+      padding: 5px 12px;
+      background: #007bff;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 0 5px;
+    }
+    .week-buttons button:hover {
+      background: #0056b3;
+    }
+    .table-container {
+      flex: 1;
+      overflow-y: auto;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 16px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background: #ccc;
+      font-weight: bold;
+    }
+    .highlight-today {
+      background-color: #fff9c4 !important;
+      font-weight: bold;
+    }
+    .even-day {
+      background-color: #ffffff;
+    }
+    .odd-day {
+      background-color: #bfd7ff;
+    }
+    .sunday {
+      background-color: #ffe6e6;
+    }
+    .fixed-col {
+      width: 180px;
+      min-width: 180px;
+      max-width: 180px;
+    }
+    .footer-message {
+      text-align: left;
+      font-size: 18px;
+      padding: 10px 30px;
+    }
+    .footer-message ul {
+      list-style-type: disc;
+      padding-left: 20px;
+      margin: 5px 0;
+    }
+    .footer-message li {
+      margin-bottom: 5px;
+    }
+    .footer-message .jp {
+      color: #555;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-box">
+    <div class="header">
+      <div class="logo-container">
+        <img src="logo.png" alt="Logo">
+        <div class="logo-text">VM-MOLD</div>
+      </div>
+      <div class="title">
+        <h1>KẾ HOẠCH SẢN XUẤT VM-MOLD<br><span class="jp-text">VM-MOLD 生産計画</span></h1>
+      </div>
+      <div id="datetime"></div>
+    </div>
+
+    <div class="week-range" id="week-range"></div>
+
+    <div class="week-buttons">
+      <button onclick="prevWeek()"><i class="fas fa-arrow-left"></i> Tuần trước</button>
+      <button onclick="nextWeek()">Tuần tiếp theo <i class="fas fa-arrow-right"></i></button>
+    </div>
+
+    <div class="table-container">
+      <table id="weekly-table">
+        <thead>
+          <tr>
+            <th class="fixed-col">Thứ - Ngày<br><span class="jp-text">曜日 - 日付</span></th>
+            <th>Bộ phận<br><span class="jp-text">部門</span></th>
+            <th>Tên khuôn<br><span class="jp-text">金型名</span></th>
+            <th>Mã khuôn<br><span class="jp-text">金型コード</span></th>
+            <th>Loại<br><span class="jp-text">種類</span></th>
+            <th>Ngày giao hàng<br><span class="jp-text">納品日</span></th>
+            <th>Trạng thái<br><span class="jp-text">状況</span></th>
+            <th>Ghi chú<br><span class="jp-text">備考</span></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="footer-message">
+      <ul>
+        <li>Vui lòng cập nhật dữ liệu sau khi giao hàng. <span class="jp">納品後はデータを更新してください。</span></li>
+        <li>Khi có phát sinh vấn đề, vui lòng liên lạc Mr.Khoa hoặc Mr.Minh. <span class="jp">問題が発生した場合は、Khoaさん または Minhさん にご連絡ください。</span></li>
+      </ul>
+    </div>
+  </div>
+
+<script>
+  const API_KEY = 'AIzaSyBXOr__3o5RcnC2NIXAPT7Wctcjw4jqJGM';
+  const SHEET_ID = '10L4KEYHYucn4qOxw17ZTTvY6Ead0JGOqhMt23VeEDg4';
+  const SHEET_NAME = 'Sheet1';
+  let weekOffset = 0;
+
+  const weekdaysVN = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+  const weekdaysJP = ['月', '火', '水', '木', '金', '土', '日'];
+
+  function getWeekDates(offset = 0) {
+    const today = new Date();
+    const dayOfWeek = (today.getDay() + 6) % 7;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - dayOfWeek + offset * 7);
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  }
+
+  function formatDate(d) {
+    return d.toISOString().split('T')[0];
+  }
+
+  function updateWeekRange() {
+    const days = getWeekDates(weekOffset);
+    const first = days[0].toLocaleDateString();
+    const last = days[6].toLocaleDateString();
+    const jp = `${days[0].toLocaleDateString('ja-JP')} ～ ${days[6].toLocaleDateString('ja-JP')}`;
+    document.getElementById('week-range').innerHTML = `Từ ${first} đến ${last}<br><span class="jp">期間: ${jp}</span>`;
+  }
+
+  function loadData() {
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.values) return;
+        const tbody = document.querySelector('#weekly-table tbody');
+        tbody.innerHTML = '';
+        const rows = data.values.slice(1);
+        const weekDays = getWeekDates(weekOffset);
+
+        weekDays.forEach((date, i) => {
+          const dateStr = formatDate(date);
+          const sameDayRows = rows.filter(row => row[5] === dateStr);
+          sameDayRows.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            const fields = [0, 1, 2, 3, 5, 10, 11];
+            const allData = [...fields.map(idx => row[idx] || '')];
+            if (index === 0) {
+              const label = `${weekdaysVN[i]} (${date.toLocaleDateString()}) - ${weekdaysJP[i]}`;
+              const td = document.createElement('td');
+              td.rowSpan = sameDayRows.length;
+              td.className = 'fixed-col';
+              td.textContent = label;
+              td.style.fontWeight = 'bold';
+              tr.appendChild(td);
+            }
+            allData.forEach((text, j) => {
+              const td = document.createElement('td');
+              td.textContent = text;
+              if (j === 5) {
+                const status = text.trim().toLowerCase();
+                if (status === 'đang xử lý') {
+                  td.innerHTML = '<i class="fas fa-hourglass-half" style="color:orange;"></i> ' + text;
+                  td.style.color = 'orange';
+                } else if (status === 'hoàn thành') {
+                  td.innerHTML = '<i class="fas fa-check-circle" style="color:green;"></i> ' + text;
+                  td.style.color = 'green';
+                } else if (status === 'stop') {
+                  td.innerHTML = '<i class="fas fa-ban" style="color:red;"></i> ' + text;
+                  td.style.color = 'red';
+                }
+              }
+              tr.appendChild(td);
+            });
+            const className = i === 6 ? 'sunday' : (i % 2 === 0 ? 'even-day' : 'odd-day');
+            tr.classList.add(className);
+            if (dateStr === formatDate(new Date())) {
+              tr.classList.add('highlight-today');
+            }
+            tbody.appendChild(tr);
+          });
+        });
+      });
+  }
+
+  function nextWeek() {
+    weekOffset++;
+    updateWeekRange();
+    loadData();
+  }
+
+  function prevWeek() {
+    weekOffset--;
+    updateWeekRange();
+    loadData();
+  }
+
+  function updateDateTime() {
+    const now = new Date();
+    const weekday = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][now.getDay()];
+    const timeStr = now.toLocaleTimeString('vi-VN');
+    const dateStr = now.toLocaleDateString('vi-VN');
+    document.getElementById('datetime').textContent = `${weekday} - ${timeStr} - ${dateStr}`;
+  }
+
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+  setInterval(loadData, 600000); // cập nhật 10 phút
+  updateWeekRange();
+  loadData();
+</script>
+</body>
+</html>
